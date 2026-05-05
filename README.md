@@ -46,8 +46,6 @@ app/src/main/java/dev/wolly/dsbwatch/
 │   ├── theme/                # Material 3 Theme, Color, Type, and Shape definitions
 │   ├── MainActivity.kt       # Main entry point and all Compose UI screens
 │   └── MainViewModel.kt      # ViewModel handling business logic and UI state
-├── tile/
-│   └── MainTileService.kt    # ViewModel handling business logic and UI state
 └── 
 ```
 
