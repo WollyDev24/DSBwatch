@@ -8,16 +8,18 @@ import dev.wolly.dsbwatch.data.DataStoreManager
 import dev.wolly.dsbwatch.data.SubstitutionEntry
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import androidx.compose.runtime.Immutable
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+@Immutable
 sealed class UiState {
-    object Idle : UiState()
-    object Loading : UiState()
-    data class Success(val entries: List<SubstitutionEntry>) : UiState()
-    data class Error(val message: String) : UiState()
-    object NeedsLogin : UiState()
-    data class SelectingClass(val classes: List<String>, val u: String, val p: String) : UiState()
+    @Immutable object Idle : UiState()
+    @Immutable object Loading : UiState()
+    @Immutable data class Success(val entries: List<SubstitutionEntry>) : UiState()
+    @Immutable data class Error(val message: String) : UiState()
+    @Immutable object NeedsLogin : UiState()
+    @Immutable data class SelectingClass(val classes: List<String>, val u: String, val p: String) : UiState()
 }
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {

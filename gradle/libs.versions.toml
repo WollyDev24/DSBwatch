@@ -21,10 +21,12 @@ jsoup = "1.17.2"
 okhttp = "4.12.0"
 gson = "2.10.1"
 datastore = "1.1.1"
-lifecycleCompose = "2.6.1"
+lifecycleCompose = "2.8.7"
+lifecycleRuntimeCompose = "2.8.7"
 kotlinxCoroutinesGuava = "1.8.1"
 
 [libraries]
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
 kotlinx-coroutines-guava = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-guava", version.ref = "kotlinxCoroutinesGuava" }
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }

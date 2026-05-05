@@ -1,5 +1,8 @@
 package dev.wolly.dsbwatch.data
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class SubstitutionEntry(
     val day: String,
     val art: String,
