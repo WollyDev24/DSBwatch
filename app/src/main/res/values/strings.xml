@@ -15,6 +15,7 @@
     <string name="action_view_substitutions">View Substitutions</string>
     <string name="action_swap_data">Swap Room/Type values</string>
     <string name="action_switch_class">Switch Class</string>
+    <string name="action_clear_archive">Clear Archive</string>
     
     <string name="label_username">Username</string>
     <string name="label_password">Password</string>

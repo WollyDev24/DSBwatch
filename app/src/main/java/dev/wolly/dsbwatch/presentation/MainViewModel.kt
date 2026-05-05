@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 sealed class UiState {
     @Immutable object Idle : UiState()
     @Immutable object Loading : UiState()
-    @Immutable data class Success(val entries: List<SubstitutionEntry>) : UiState()
+    @Immutable data class Success(val entries: List<SubstitutionEntry>, val isDemo: Boolean = false) : UiState()
     @Immutable data class Error(val message: String) : UiState()
     @Immutable object NeedsLogin : UiState()
     @Immutable data class SelectingClass(val classes: List<String>, val u: String, val p: String) : UiState()
@@ -26,6 +26,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val dataStoreManager = DataStoreManager(application)
     private val gson = Gson()
     
+    private var isDemoMode = false
+    
     private val _uiState = MutableStateFlow<UiState>(UiState.Idle)
     val uiState: StateFlow<UiState> = _uiState
 
@@ -33,6 +35,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val sortByPeriod: StateFlow<Boolean> = dataStoreManager.sortPeriodFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val isDynamicColorEnabled: StateFlow<Boolean> = dataStoreManager.dynamicColorFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     private val _archive = MutableStateFlow<List<SubstitutionEntry>>(emptyList())
@@ -65,6 +70,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun archiveSubstitutions(entries: List<SubstitutionEntry>? = null) {
+        if (isDemoMode) return
         val toArchive = entries ?: lastSuccessEntries
         if (toArchive.isNotEmpty()) {
             viewModelScope.launch {
@@ -103,13 +109,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             dataStoreManager.saveSortPreference(!sortByPeriod.value)
             // Re-sort if we have data
-            if (_uiState.value is UiState.Success) {
-                _uiState.value = UiState.Success(sortEntries(lastSuccessEntries))
+            val current = _uiState.value
+            if (current is UiState.Success) {
+                _uiState.value = current.copy(entries = sortEntries(lastSuccessEntries))
             }
         }
     }
 
+    fun toggleDynamicColor() {
+        viewModelScope.launch {
+            dataStoreManager.saveDynamicColorPreference(!isDynamicColorEnabled.value)
+        }
+    }
+
     fun changeClass() {
+        if (isDemoMode) return
         viewModelScope.launch {
             val u = dataStoreManager.usernameFlow.first() ?: ""
             val p = dataStoreManager.passwordFlow.first() ?: ""
@@ -138,8 +152,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun login(username: String, password: String) {
+        isDemoMode = false
         viewModelScope.launch {
             fetchClasses(username, password)
+        }
+    }
+    
+    fun loginDemo() {
+        isDemoMode = true
+        _uiState.value = UiState.Loading
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(1000)
+            val demoEntries = listOf(
+                SubstitutionEntry("Monday", "Vertretung", "Demo-10a", "1 - 2", "Math", "R101", "", "", "Teacher sick", ""),
+                SubstitutionEntry("Monday", "Entfall", "Demo-10a", "3", "Physics", "R102", "", "", "Room occupied", ""),
+                SubstitutionEntry("Tuesday", "Raumänderung", "Demo-10a", "5 - 6", "English", "R205", "", "", "Move to Cafeteria", ""),
+                SubstitutionEntry("Wednesday", "EVA", "Demo-10a", "1 - 2", "German", "HOME", "", "", "Work from home", "")
+            )
+            lastSuccessEntries = demoEntries
+            _uiState.value = UiState.Success(demoEntries, isDemo = true)
         }
     }
 
@@ -166,14 +197,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     fun logout() {
+        isDemoMode = false
         viewModelScope.launch {
             dataStoreManager.clearCredentials()
             _uiState.value = UiState.NeedsLogin
         }
     }
 
+    fun resetToLogin() {
+        isDemoMode = false
+        _uiState.value = UiState.NeedsLogin
+    }
+
     fun fetchData() {
-        checkCredentialsAndFetch()
+        if (isDemoMode) {
+            loginDemo()
+        } else {
+            checkCredentialsAndFetch()
+        }
     }
 
     private suspend fun fetchData(u: String, p: String, c: String) {

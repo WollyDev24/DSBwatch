@@ -5,6 +5,7 @@ import android.app.RemoteInput
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -59,14 +60,18 @@ fun DSBwatchApp(viewModel: MainViewModel = viewModel()) {
             } else {
                 when (val state = uiState) {
                     is UiState.Loading -> LoadingScreen()
-                    is UiState.NeedsLogin -> LoginScreen(onLogin = viewModel::login)
+                    is UiState.NeedsLogin -> LoginScreen(
+                        onLogin = viewModel::login,
+                        onLoginDemo = viewModel::loginDemo
+                    )
                     is UiState.SelectingClass -> {
                         val onClassSelected = remember(state.u, state.p) {
                             { cls: String -> viewModel.selectClass(state.u, state.p, cls) }
                         }
                         ClassSelectionScreen(
                             classes = state.classes,
-                            onClassSelected = onClassSelected
+                            onClassSelected = onClassSelected,
+                            onBack = viewModel::resetToLogin
                         )
                     }
                     is UiState.Success -> {
@@ -74,7 +79,6 @@ fun DSBwatchApp(viewModel: MainViewModel = viewModel()) {
                         SubstitutionList(
                             entries = state.entries,
                             onRefresh = viewModel::fetchData,
-                            onLogout = viewModel::logout,
                             onOpenSettings = onOpenSettings
                         )
                     }
@@ -141,7 +145,7 @@ fun ErrorScreen(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
-fun LoginScreen(onLogin: (String, String) -> Unit) {
+fun LoginScreen(onLogin: (String, String) -> Unit, onLoginDemo: () -> Unit) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val scrollState = rememberTransformingLazyColumnState()
@@ -220,10 +224,26 @@ fun LoginScreen(onLogin: (String, String) -> Unit) {
                         .fillMaxWidth()
                         .transformedHeight(this, transformationSpec),
                     transformation = SurfaceTransformation(transformationSpec),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                     shape = CircleShape
                 ) {
                     Text(stringResource(R.string.action_submit))
+                }
+            }
+            item {
+                Button(
+                    onClick = onLoginDemo,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .transformedHeight(this, transformationSpec),
+                    transformation = SurfaceTransformation(transformationSpec),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.tertiaryContainer
+                    ),
+                    shape = CircleShape
+                ) {
+                    Text("Demo Mode")
                 }
             }
         }
@@ -231,7 +251,12 @@ fun LoginScreen(onLogin: (String, String) -> Unit) {
 }
 
 @Composable
-fun ClassSelectionScreen(classes: List<String>, onClassSelected: (String) -> Unit) {
+fun ClassSelectionScreen(
+    classes: List<String>,
+    onClassSelected: (String) -> Unit,
+    onBack: () -> Unit
+) {
+    BackHandler(onBack = onBack)
     val scrollState = rememberTransformingLazyColumnState()
     val transformationSpec = rememberTransformationSpec()
 
@@ -298,7 +323,6 @@ fun ClassSelectionScreen(classes: List<String>, onClassSelected: (String) -> Uni
 fun SubstitutionList(
     entries: List<SubstitutionEntry>,
     onRefresh: () -> Unit,
-    onLogout: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val scrollState = rememberTransformingLazyColumnState()
@@ -372,27 +396,11 @@ fun SubstitutionList(
                     transformation = SurfaceTransformation(transformationSpec),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        contentColor = MaterialTheme.colorScheme.onSecondary
                     ),
                     shape = CircleShape
                 ) {
                     Text(stringResource(R.string.title_settings))
-                }
-            }
-            item(key = "logout_btn", contentType = "button") {
-                Button(
-                    onClick = onLogout,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .transformedHeight(this, transformationSpec),
-                    transformation = SurfaceTransformation(transformationSpec),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    ),
-                    shape = CircleShape
-                ) {
-                    Text(stringResource(R.string.action_logout))
                 }
             }
         }
@@ -487,10 +495,12 @@ fun TransformingLazyColumnItemScope.SubstitutionItem(
 
 @Composable
 fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+    BackHandler(onBack = onBack)
     val scrollState = rememberTransformingLazyColumnState()
     val transformationSpec = rememberTransformationSpec()
     val isRoomFirst by viewModel.isRoomFirst.collectAsStateWithLifecycle()
     val sortByPeriod by viewModel.sortByPeriod.collectAsStateWithLifecycle()
+    val isDynamicColorEnabled by viewModel.isDynamicColorEnabled.collectAsStateWithLifecycle()
 
     ScreenScaffold(scrollState = scrollState) { contentPadding ->
         TransformingLazyColumn(
@@ -527,6 +537,18 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     transformation = SurfaceTransformation(transformationSpec)
                 )
             }
+            item(key = "dynamic_color") {
+                SwitchButton(
+                    checked = isDynamicColorEnabled,
+                    onCheckedChange = { viewModel.toggleDynamicColor() },
+                    label = { Text(stringResource(R.string.label_dynamic_color)) },
+                    secondaryLabel = { Text(stringResource(R.string.desc_dynamic_color)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .transformedHeight(this, transformationSpec),
+                    transformation = SurfaceTransformation(transformationSpec)
+                )
+            }
             item(key = "switch_class") {
                 Button(
                     onClick = { 
@@ -541,6 +563,57 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 ) {
                     Text(stringResource(R.string.action_switch_class))
                 }
+            }
+            item(key = "clear_archive") {
+                Button(
+                    onClick = { viewModel.clearArchive() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .transformedHeight(this, transformationSpec),
+                    transformation = SurfaceTransformation(transformationSpec),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    ),
+                    shape = CircleShape
+                ) {
+                    Text(stringResource(R.string.action_clear_archive))
+                }
+            }
+            item(key = "logout_btn") {
+                Button(
+                    onClick = {
+                        viewModel.logout()
+                        onBack()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .transformedHeight(this, transformationSpec),
+                    transformation = SurfaceTransformation(transformationSpec),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    shape = CircleShape
+                ) {
+                    Text(stringResource(R.string.action_logout))
+                }
+            }
+            item(key = "about_header") {
+                ListHeader(modifier = Modifier.transformedHeight(this, transformationSpec)) {
+                    Text(stringResource(R.string.title_about))
+                }
+            }
+            item(key = "about_text") {
+                Text(
+                    text = stringResource(R.string.desc_about),
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .transformedHeight(this, transformationSpec)
+                )
             }
             item(key = "back_btn") {
                 Button(
@@ -569,7 +642,6 @@ fun DefaultPreview() {
                 SubstitutionEntry("Monday", "Entfall", "10a", "3", "Physic", "R102", "", "", "", "")
             ),
             onRefresh = {},
-            onLogout = {},
             onOpenSettings = {}
         )
     }
