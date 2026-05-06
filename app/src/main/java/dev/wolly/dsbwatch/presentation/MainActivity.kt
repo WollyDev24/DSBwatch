@@ -32,6 +32,7 @@ import androidx.wear.compose.material3.lazy.TransformationSpec
 import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
 import androidx.wear.compose.ui.tooling.preview.WearPreviewDevices
+import kotlin.math.abs
 import dev.wolly.dsbwatch.R
 import dev.wolly.dsbwatch.data.SubstitutionEntry
 import dev.wolly.dsbwatch.presentation.theme.DSBwatchTheme
@@ -78,6 +79,7 @@ fun DSBwatchApp(viewModel: MainViewModel = viewModel()) {
                         val onOpenSettings = remember { { showSettings = true } }
                         SubstitutionList(
                             entries = state.entries,
+                            isDemo = state.isDemo,
                             onRefresh = viewModel::fetchData,
                             onOpenSettings = onOpenSettings
                         )
@@ -106,10 +108,18 @@ fun ErrorScreen(message: String, onRetry: () -> Unit) {
     val transformationSpec = rememberTransformationSpec()
 
     ScreenScaffold(scrollState = scrollState) { contentPadding ->
+        val padding = remember(contentPadding) {
+            PaddingValues(
+                top = contentPadding.calculateTopPadding(),
+                bottom = contentPadding.calculateBottomPadding(),
+                start = 14.dp,
+                end = 14.dp
+            )
+        }
         TransformingLazyColumn(
             modifier = Modifier.fillMaxSize(),
             state = scrollState,
-            contentPadding = contentPadding,
+            contentPadding = padding,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             item {
@@ -181,10 +191,18 @@ fun LoginScreen(onLogin: (String, String) -> Unit, onLoginDemo: () -> Unit) {
     }
 
     ScreenScaffold(scrollState = scrollState) { contentPadding ->
+        val padding = remember(contentPadding) {
+            PaddingValues(
+                top = contentPadding.calculateTopPadding(),
+                bottom = contentPadding.calculateBottomPadding(),
+                start = 14.dp,
+                end = 14.dp
+            )
+        }
         TransformingLazyColumn(
             modifier = Modifier.fillMaxSize(),
             state = scrollState,
-            contentPadding = contentPadding,
+            contentPadding = padding,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             item {
@@ -213,7 +231,7 @@ fun LoginScreen(onLogin: (String, String) -> Unit, onLoginDemo: () -> Unit) {
                     transformation = SurfaceTransformation(transformationSpec),
                     shape = CircleShape
                 ) {
-                    Text(if (password.isEmpty()) "Set Password" else "Pass: ****")
+                    Text(if (password.isEmpty()) "Set Password" else "Pass: *****")
                 }
             }
             item {
@@ -238,8 +256,8 @@ fun LoginScreen(onLogin: (String, String) -> Unit, onLoginDemo: () -> Unit) {
                         .transformedHeight(this, transformationSpec),
                     transformation = SurfaceTransformation(transformationSpec),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.tertiaryContainer
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                     ),
                     shape = CircleShape
                 ) {
@@ -280,10 +298,18 @@ fun ClassSelectionScreen(
     }
 
     ScreenScaffold(scrollState = scrollState) { contentPadding ->
+        val padding = remember(contentPadding) {
+            PaddingValues(
+                top = contentPadding.calculateTopPadding(),
+                bottom = contentPadding.calculateBottomPadding(),
+                start = 14.dp,
+                end = 14.dp
+            )
+        }
         TransformingLazyColumn(
             modifier = Modifier.fillMaxSize(),
             state = scrollState,
-            contentPadding = contentPadding
+            contentPadding = padding
         ) {
             item(key = "select_class_header") {
                 ListHeader(modifier = Modifier.transformedHeight(this, transformationSpec)) {
@@ -322,6 +348,7 @@ fun ClassSelectionScreen(
 @Composable
 fun SubstitutionList(
     entries: List<SubstitutionEntry>,
+    isDemo: Boolean = false,
     onRefresh: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
@@ -341,8 +368,8 @@ fun SubstitutionList(
             PaddingValues(
                 top = contentPadding.calculateTopPadding(),
                 bottom = contentPadding.calculateBottomPadding(),
-                start = 10.dp,
-                end = 10.dp
+                start = 14.dp,
+                end = 14.dp
             )
         }
         
@@ -351,6 +378,27 @@ fun SubstitutionList(
             state = scrollState,
             contentPadding = padding
         ) {
+            if (isDemo) {
+                item(key = "demo_label") {
+                    Text(
+                        text = "--- DEMO MODE ---",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .transformedHeight(this, transformationSpec)
+                            .graphicsLayer {
+                                val progress = scrollProgress
+                                val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                                val scale = 1f - abs(center - 0.5f) * 0.5f
+                                scaleX = scale.coerceAtLeast(0.7f)
+                                scaleY = scale.coerceAtLeast(0.7f)
+                                alpha = scale.coerceAtLeast(0.5f)
+                            },
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
             if (entries.isEmpty()) {
                 item {
                     Text(
@@ -358,7 +406,15 @@ fun SubstitutionList(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp)
-                            .transformedHeight(this, transformationSpec),
+                            .transformedHeight(this, transformationSpec)
+                            .graphicsLayer {
+                                val progress = scrollProgress
+                                val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                                val scale = 1f - abs(center - 0.5f) * 0.5f
+                                scaleX = scale.coerceAtLeast(0.7f)
+                                scaleY = scale.coerceAtLeast(0.7f)
+                                alpha = scale.coerceAtLeast(0.5f)
+                            },
                         textAlign = TextAlign.Center
                     )
                 }
@@ -373,7 +429,16 @@ fun SubstitutionList(
                             Text(
                                 text = day,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .graphicsLayer {
+                                        val progress = scrollProgress
+                                        val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                                        val scale = 1f - abs(center - 0.5f) * 0.5f
+                                        scaleX = scale.coerceAtLeast(0.7f)
+                                        scaleY = scale.coerceAtLeast(0.7f)
+                                        alpha = scale.coerceAtLeast(0.5f)
+                                    },
                                 textAlign = TextAlign.Start
                             )
                         }
@@ -400,7 +465,16 @@ fun SubstitutionList(
                     ),
                     shape = CircleShape
                 ) {
-                    Text(stringResource(R.string.title_settings))
+                    Box(modifier = Modifier.graphicsLayer {
+                        val progress = scrollProgress
+                        val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                        val scale = 1f - abs(center - 0.5f) * 0.5f
+                        scaleX = scale.coerceAtLeast(0.7f)
+                        scaleY = scale.coerceAtLeast(0.7f)
+                        alpha = scale.coerceAtLeast(0.5f)
+                    }) {
+                        Text(stringResource(R.string.title_settings))
+                    }
                 }
             }
         }
@@ -430,7 +504,18 @@ fun TransformingLazyColumnItemScope.SubstitutionItem(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = cardShape
     ) {
-        Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .graphicsLayer {
+                    val progress = scrollProgress
+                    val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                    val scale = 1f - abs(center - 0.5f) * 0.5f
+                    scaleX = scale.coerceAtLeast(0.7f)
+                    scaleY = scale.coerceAtLeast(0.7f)
+                    alpha = scale.coerceAtLeast(0.5f)
+                }
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -503,10 +588,18 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     val isDynamicColorEnabled by viewModel.isDynamicColorEnabled.collectAsStateWithLifecycle()
 
     ScreenScaffold(scrollState = scrollState) { contentPadding ->
+        val padding = remember(contentPadding) {
+            PaddingValues(
+                top = contentPadding.calculateTopPadding(),
+                bottom = contentPadding.calculateBottomPadding(),
+                start = 14.dp,
+                end = 14.dp
+            )
+        }
         TransformingLazyColumn(
             modifier = Modifier.fillMaxSize(),
             state = scrollState,
-            contentPadding = contentPadding
+            contentPadding = padding
         ) {
             item(key = "settings_header") {
                 ListHeader(modifier = Modifier.transformedHeight(this, transformationSpec)) {
@@ -517,8 +610,30 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 SwitchButton(
                     checked = !isRoomFirst,
                     onCheckedChange = { viewModel.toggleColumnOrder() },
-                    label = { Text(stringResource(R.string.label_room)) },
-                    secondaryLabel = { Text(stringResource(R.string.action_swap_data)) },
+                    label = { 
+                        Text(
+                            text = stringResource(R.string.label_room),
+                            modifier = Modifier.graphicsLayer {
+                                val progress = scrollProgress
+                                val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                                val scale = 1f - abs(center - 0.5f) * 0.5f
+                                scaleX = scale.coerceAtLeast(0.7f)
+                                scaleY = scale.coerceAtLeast(0.7f)
+                            }
+                        ) 
+                    },
+                    secondaryLabel = { 
+                        Text(
+                            text = stringResource(R.string.action_swap_data),
+                            modifier = Modifier.graphicsLayer {
+                                val progress = scrollProgress
+                                val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                                val scale = 1f - abs(center - 0.5f) * 0.5f
+                                scaleX = scale.coerceAtLeast(0.7f)
+                                scaleY = scale.coerceAtLeast(0.7f)
+                            }
+                        ) 
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .transformedHeight(this, transformationSpec),
@@ -529,8 +644,30 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 SwitchButton(
                     checked = sortByPeriod,
                     onCheckedChange = { viewModel.toggleSortByPeriod() },
-                    label = { Text(stringResource(R.string.label_sort_period)) },
-                    secondaryLabel = { Text(if (sortByPeriod) "Chronological" else "Default") },
+                    label = { 
+                        Text(
+                            text = stringResource(R.string.label_sort_period),
+                            modifier = Modifier.graphicsLayer {
+                                val progress = scrollProgress
+                                val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                                val scale = 1f - abs(center - 0.5f) * 0.5f
+                                scaleX = scale.coerceAtLeast(0.7f)
+                                scaleY = scale.coerceAtLeast(0.7f)
+                            }
+                        ) 
+                    },
+                    secondaryLabel = { 
+                        Text(
+                            text = if (sortByPeriod) "Chronological" else "Default",
+                            modifier = Modifier.graphicsLayer {
+                                val progress = scrollProgress
+                                val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                                val scale = 1f - abs(center - 0.5f) * 0.5f
+                                scaleX = scale.coerceAtLeast(0.7f)
+                                scaleY = scale.coerceAtLeast(0.7f)
+                            }
+                        ) 
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .transformedHeight(this, transformationSpec),
@@ -541,8 +678,30 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                 SwitchButton(
                     checked = isDynamicColorEnabled,
                     onCheckedChange = { viewModel.toggleDynamicColor() },
-                    label = { Text(stringResource(R.string.label_dynamic_color)) },
-                    secondaryLabel = { Text(stringResource(R.string.desc_dynamic_color)) },
+                    label = { 
+                        Text(
+                            text = stringResource(R.string.label_dynamic_color),
+                            modifier = Modifier.graphicsLayer {
+                                val progress = scrollProgress
+                                val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                                val scale = 1f - abs(center - 0.5f) * 0.5f
+                                scaleX = scale.coerceAtLeast(0.7f)
+                                scaleY = scale.coerceAtLeast(0.7f)
+                            }
+                        ) 
+                    },
+                    secondaryLabel = { 
+                        Text(
+                            text = stringResource(R.string.desc_dynamic_color),
+                            modifier = Modifier.graphicsLayer {
+                                val progress = scrollProgress
+                                val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                                val scale = 1f - abs(center - 0.5f) * 0.5f
+                                scaleX = scale.coerceAtLeast(0.7f)
+                                scaleY = scale.coerceAtLeast(0.7f)
+                            }
+                        ) 
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .transformedHeight(this, transformationSpec),
@@ -561,7 +720,16 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     transformation = SurfaceTransformation(transformationSpec),
                     shape = CircleShape
                 ) {
-                    Text(stringResource(R.string.action_switch_class))
+                    Text(
+                        text = stringResource(R.string.action_switch_class),
+                        modifier = Modifier.graphicsLayer {
+                            val progress = scrollProgress
+                            val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                            val scale = 1f - abs(center - 0.5f) * 0.5f
+                            scaleX = scale.coerceAtLeast(0.7f)
+                            scaleY = scale.coerceAtLeast(0.7f)
+                        }
+                    )
                 }
             }
             item(key = "clear_archive") {
@@ -577,7 +745,16 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     ),
                     shape = CircleShape
                 ) {
-                    Text(stringResource(R.string.action_clear_archive))
+                    Text(
+                        text = stringResource(R.string.action_clear_archive),
+                        modifier = Modifier.graphicsLayer {
+                            val progress = scrollProgress
+                            val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                            val scale = 1f - abs(center - 0.5f) * 0.5f
+                            scaleX = scale.coerceAtLeast(0.7f)
+                            scaleY = scale.coerceAtLeast(0.7f)
+                        }
+                    )
                 }
             }
             item(key = "logout_btn") {
@@ -596,12 +773,30 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     ),
                     shape = CircleShape
                 ) {
-                    Text(stringResource(R.string.action_logout))
+                    Text(
+                        text = stringResource(R.string.action_logout),
+                        modifier = Modifier.graphicsLayer {
+                            val progress = scrollProgress
+                            val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                            val scale = 1f - abs(center - 0.5f) * 0.5f
+                            scaleX = scale.coerceAtLeast(0.7f)
+                            scaleY = scale.coerceAtLeast(0.7f)
+                        }
+                    )
                 }
             }
             item(key = "about_header") {
                 ListHeader(modifier = Modifier.transformedHeight(this, transformationSpec)) {
-                    Text(stringResource(R.string.title_about))
+                    Text(
+                        text = stringResource(R.string.title_about),
+                        modifier = Modifier.graphicsLayer {
+                            val progress = scrollProgress
+                            val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                            val scale = 1f - abs(center - 0.5f) * 0.5f
+                            scaleX = scale.coerceAtLeast(0.7f)
+                            scaleY = scale.coerceAtLeast(0.7f)
+                        }
+                    )
                 }
             }
             item(key = "about_text") {
@@ -613,6 +808,13 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                         .transformedHeight(this, transformationSpec)
+                        .graphicsLayer {
+                            val progress = scrollProgress
+                            val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                            val scale = 1f - abs(center - 0.5f) * 0.5f
+                            scaleX = scale.coerceAtLeast(0.7f)
+                            scaleY = scale.coerceAtLeast(0.7f)
+                        }
                 )
             }
             item(key = "back_btn") {
@@ -625,7 +827,16 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = CircleShape
                 ) {
-                    Text(stringResource(R.string.action_back))
+                    Text(
+                        text = stringResource(R.string.action_back),
+                        modifier = Modifier.graphicsLayer {
+                            val progress = scrollProgress
+                            val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                            val scale = 1f - abs(center - 0.5f) * 0.5f
+                            scaleX = scale.coerceAtLeast(0.7f)
+                            scaleY = scale.coerceAtLeast(0.7f)
+                        }
+                    )
                 }
             }
         }

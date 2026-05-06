@@ -33,6 +33,17 @@
 
 ### if you use Obtainium please turn "Include prereleases" on for now
 
+## Screenshots
+<details>
+<summary><b>Click to Expand</b><summary>
+<img src="assets/1.png" alt="Preview" />
+<img src="assets/2.png" alt="Preview" />
+<img src="assets/3.png" alt="Preview" />
+<img src="assets/4.png" alt="Preview" />
+<img src="assets/5.png" alt="Preview" />
+
+</details>
+
 ## 📂 Project Structure
 
 ```text
