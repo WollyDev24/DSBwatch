@@ -42,6 +42,7 @@
 <img src="assets/4.png" alt="Preview" />
 <img src="assets/5.png" alt="Preview" />
 
+* Previews rendered on android studio emulator
 </details>
 
 ## 📂 Project Structure
