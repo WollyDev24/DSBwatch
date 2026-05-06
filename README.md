@@ -35,7 +35,6 @@
 
 ## Screenshots
 <details>
-<b>Click to Expand</b>
 <img src="assets/1.png" alt="Preview" />
 <img src="assets/2.png" alt="Preview" />
 <img src="assets/3.png" alt="Preview" />
