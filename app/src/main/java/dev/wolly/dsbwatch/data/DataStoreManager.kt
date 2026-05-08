@@ -21,6 +21,7 @@ class DataStoreManager(private val context: Context) {
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val SORT_PERIOD = booleanPreferencesKey("sort_period")
         val ARCHIVE = stringPreferencesKey("archive")
+        val THEME_INDEX = androidx.datastore.preferences.core.intPreferencesKey("theme_index")
     }
 
     val usernameFlow: Flow<String?> = context.dataStore.data.map { it[USERNAME] }
@@ -30,6 +31,7 @@ class DataStoreManager(private val context: Context) {
     val dynamicColorFlow: Flow<Boolean> = context.dataStore.data.map { it[DYNAMIC_COLOR] ?: true }
     val sortPeriodFlow: Flow<Boolean> = context.dataStore.data.map { it[SORT_PERIOD] ?: true }
     val archiveFlow: Flow<String?> = context.dataStore.data.map { it[ARCHIVE] }
+    val themeIndexFlow: Flow<Int> = context.dataStore.data.map { it[THEME_INDEX] ?: 0 }
 
     suspend fun saveCredentials(username: String, password: String, className: String) {
         context.dataStore.edit { settings ->
@@ -45,6 +47,10 @@ class DataStoreManager(private val context: Context) {
 
     suspend fun saveDynamicColorPreference(enabled: Boolean) {
         context.dataStore.edit { it[DYNAMIC_COLOR] = enabled }
+    }
+
+    suspend fun saveThemeIndex(index: Int) {
+        context.dataStore.edit { it[THEME_INDEX] = index }
     }
 
     suspend fun saveSortPreference(enabled: Boolean) {

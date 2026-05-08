@@ -9,11 +9,17 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -21,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
@@ -36,6 +43,7 @@ import kotlin.math.abs
 import dev.wolly.dsbwatch.R
 import dev.wolly.dsbwatch.data.SubstitutionEntry
 import dev.wolly.dsbwatch.presentation.theme.DSBwatchTheme
+import dev.wolly.dsbwatch.presentation.theme.themePresets
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,46 +57,56 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun DSBwatchApp(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showSettings by remember { mutableStateOf(false) }
+    val isDynamicColorEnabled by viewModel.isDynamicColorEnabled.collectAsStateWithLifecycle()
+    val themeIndex by viewModel.themeIndex.collectAsStateWithLifecycle()
+    var currentScreen by remember { mutableStateOf("main") }
     
-    DSBwatchTheme {
+    DSBwatchTheme(
+        themeIndex = themeIndex,
+        dynamicColor = isDynamicColorEnabled
+    ) {
         AppScaffold {
-            if (showSettings) {
-                SettingsScreen(
+            when (currentScreen) {
+                "settings" -> SettingsScreen(
                     viewModel = viewModel,
-                    onBack = { showSettings = false }
+                    onBack = { currentScreen = "main" },
+                    onOpenThemePicker = { currentScreen = "theme_picker" }
                 )
-            } else {
-                when (val state = uiState) {
-                    is UiState.Loading -> LoadingScreen()
-                    is UiState.NeedsLogin -> LoginScreen(
-                        onLogin = viewModel::login,
-                        onLoginDemo = viewModel::loginDemo
-                    )
-                    is UiState.SelectingClass -> {
-                        val onClassSelected = remember(state.u, state.p) {
-                            { cls: String -> viewModel.selectClass(state.u, state.p, cls) }
+                "theme_picker" -> ThemePickerScreen(
+                    viewModel = viewModel,
+                    onBack = { currentScreen = "settings" }
+                )
+                else -> {
+                    when (val state = uiState) {
+                        is UiState.Loading -> LoadingScreen()
+                        is UiState.NeedsLogin -> LoginScreen(
+                            onLogin = viewModel::login,
+                            onLoginDemo = viewModel::loginDemo
+                        )
+                        is UiState.SelectingClass -> {
+                            val onClassSelected = remember(state.u, state.p) {
+                                { cls: String -> viewModel.selectClass(state.u, state.p, cls) }
+                            }
+                            ClassSelectionScreen(
+                                classes = state.classes,
+                                onClassSelected = onClassSelected,
+                                onBack = viewModel::resetToLogin
+                            )
                         }
-                        ClassSelectionScreen(
-                            classes = state.classes,
-                            onClassSelected = onClassSelected,
-                            onBack = viewModel::resetToLogin
+                        is UiState.Success -> {
+                            SubstitutionList(
+                                entries = state.entries,
+                                isDemo = state.isDemo,
+                                onRefresh = viewModel::fetchData,
+                                onOpenSettings = { currentScreen = "settings" }
+                            )
+                        }
+                        is UiState.Error -> ErrorScreen(
+                            message = state.message,
+                            onRetry = viewModel::fetchData
                         )
+                        else -> LoadingScreen()
                     }
-                    is UiState.Success -> {
-                        val onOpenSettings = remember { { showSettings = true } }
-                        SubstitutionList(
-                            entries = state.entries,
-                            isDemo = state.isDemo,
-                            onRefresh = viewModel::fetchData,
-                            onOpenSettings = onOpenSettings
-                        )
-                    }
-                    is UiState.Error -> ErrorScreen(
-                        message = state.message,
-                        onRetry = viewModel::fetchData
-                    )
-                    else -> LoadingScreen()
                 }
             }
         }
@@ -242,7 +260,7 @@ fun LoginScreen(onLogin: (String, String) -> Unit, onLoginDemo: () -> Unit) {
                         .fillMaxWidth()
                         .transformedHeight(this, transformationSpec),
                     transformation = SurfaceTransformation(transformationSpec),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = CircleShape
                 ) {
                     Text(stringResource(R.string.action_submit))
@@ -256,8 +274,8 @@ fun LoginScreen(onLogin: (String, String) -> Unit, onLoginDemo: () -> Unit) {
                         .transformedHeight(this, transformationSpec),
                     transformation = SurfaceTransformation(transformationSpec),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     ),
                     shape = CircleShape
                 ) {
@@ -461,7 +479,7 @@ fun SubstitutionList(
                     transformation = SurfaceTransformation(transformationSpec),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     ),
                     shape = CircleShape
                 ) {
@@ -579,7 +597,11 @@ fun TransformingLazyColumnItemScope.SubstitutionItem(
 }
 
 @Composable
-fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+fun SettingsScreen(
+    viewModel: MainViewModel, 
+    onBack: () -> Unit,
+    onOpenThemePicker: () -> Unit
+) {
     BackHandler(onBack = onBack)
     val scrollState = rememberTransformingLazyColumnState()
     val transformationSpec = rememberTransformationSpec()
@@ -604,6 +626,27 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             item(key = "settings_header") {
                 ListHeader(modifier = Modifier.transformedHeight(this, transformationSpec)) {
                     Text(stringResource(R.string.title_settings))
+                }
+            }
+            item(key = "theme_picker_btn") {
+                Button(
+                    onClick = onOpenThemePicker,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .transformedHeight(this, transformationSpec),
+                    transformation = SurfaceTransformation(transformationSpec),
+                    shape = CircleShape
+                ) {
+                    Text(
+                        text = stringResource(R.string.label_theme_picker),
+                        modifier = Modifier.graphicsLayer {
+                            val progress = scrollProgress
+                            val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                            val scale = 1f - abs(center - 0.5f) * 0.5f
+                            scaleX = scale.coerceAtLeast(0.7f)
+                            scaleY = scale.coerceAtLeast(0.7f)
+                        }
+                    )
                 }
             }
             item(key = "swap_data") {
@@ -740,8 +783,8 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         .transformedHeight(this, transformationSpec),
                     transformation = SurfaceTransformation(transformationSpec),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     ),
                     shape = CircleShape
                 ) {
@@ -838,6 +881,151 @@ fun SettingsScreen(viewModel: MainViewModel, onBack: () -> Unit) {
                         }
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ThemePickerScreen(viewModel: MainViewModel, onBack: () -> Unit) {
+    BackHandler(onBack = onBack)
+    val themeIndex by viewModel.themeIndex.collectAsStateWithLifecycle()
+    val isDynamicColorEnabled by viewModel.isDynamicColorEnabled.collectAsStateWithLifecycle()
+    
+    val themeNames = listOf(
+        stringResource(R.string.theme_green),
+        stringResource(R.string.theme_blue),
+        stringResource(R.string.theme_purple),
+        stringResource(R.string.theme_red),
+        stringResource(R.string.theme_orange),
+        stringResource(R.string.theme_cyan),
+        stringResource(R.string.theme_pink)
+    )
+    val pagerState = rememberPagerState(initialPage = themeIndex, pageCount = { themeNames.size })
+    
+    // Sync pager with viewModel
+    LaunchedEffect(pagerState.currentPage) {
+        viewModel.setThemeIndex(pagerState.currentPage)
+    }
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        // Warning if Dynamic Color is on (though our viewModel now disables it on swipe)
+        if (isDynamicColorEnabled && pagerState.currentPage == 0) {
+            Text(
+                text = "Dynamic Color Active",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 24.dp)
+            )
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 30.dp)
+        ) { page ->
+            val theme = themePresets[page]
+            val name = themeNames[page]
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 20.dp)
+                    .graphicsLayer {
+                        val pageOffset = (
+                                (pagerState.currentPage - page) + pagerState
+                                    .currentPageOffsetFraction
+                                )
+                        alpha = 1f - abs(pageOffset) * 0.5f
+                        scaleX = 1f - abs(pageOffset) * 0.2f
+                        scaleY = 1f - abs(pageOffset) * 0.2f
+                    },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = theme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                // Theme Preview Card
+                ThemePreviewCard(theme, onClick = onBack)
+                Spacer(modifier = Modifier.height(8.dp))
+                if (page == themeIndex) {
+                    Text(
+                        text = stringResource(R.string.label_selected),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = theme.secondary
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.label_swipe_to_select),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ThemePreviewCard(colorScheme: ColorScheme, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .width(120.dp)
+            .height(80.dp),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxSize()
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(colorScheme.primary)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .height(8.dp)
+                        .weight(1f)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(colorScheme.primary.copy(alpha = 0.5f))
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .height(6.dp)
+                    .fillMaxWidth(0.7f)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(colorScheme.secondary.copy(alpha = 0.4f))
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(RoundedCornerShape(4.dp) )
+                        .background(colorScheme.primaryContainer)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(colorScheme.secondaryContainer)
+                )
             }
         }
     }

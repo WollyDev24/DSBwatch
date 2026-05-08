@@ -41,6 +41,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val isDynamicColorEnabled: StateFlow<Boolean> = dataStoreManager.dynamicColorFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val themeIndex: StateFlow<Int> = dataStoreManager.themeIndexFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     private val _archive = MutableStateFlow<List<SubstitutionEntry>>(emptyList())
     val archive: StateFlow<List<SubstitutionEntry>> = _archive
 
@@ -120,6 +123,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleDynamicColor() {
         viewModelScope.launch {
             dataStoreManager.saveDynamicColorPreference(!isDynamicColorEnabled.value)
+        }
+    }
+
+    fun setThemeIndex(index: Int) {
+        viewModelScope.launch {
+            dataStoreManager.saveThemeIndex(index)
+            dataStoreManager.saveDynamicColorPreference(false)
         }
     }
 

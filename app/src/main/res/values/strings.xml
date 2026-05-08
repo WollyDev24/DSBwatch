@@ -32,6 +32,16 @@
     <string name="label_demo_mode_active">--- DEMO MODE ---</string>
     <string name="label_about">About</string>
     <string name="label_archive">Archive</string>
+    <string name="label_theme_picker">Theme Picker</string>
+    <string name="label_selected">Selected</string>
+    <string name="label_swipe_to_select">Swipe to select</string>
+    <string name="theme_green">Green</string>
+    <string name="theme_blue">Blue</string>
+    <string name="theme_purple">Purple</string>
+    <string name="theme_red">Red</string>
+    <string name="theme_orange">Orange</string>
+    <string name="theme_cyan">Cyan</string>
+    <string name="theme_pink">Pink</string>
 
     <string name="demo_day_1">Monday</string>
     <string name="demo_day_2">Tuesday</string>
