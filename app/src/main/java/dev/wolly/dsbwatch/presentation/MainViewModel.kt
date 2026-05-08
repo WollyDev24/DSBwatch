@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dev.wolly.dsbwatch.api.DSBMobileAPI
 import dev.wolly.dsbwatch.data.DataStoreManager
 import dev.wolly.dsbwatch.data.SubstitutionEntry
+import dev.wolly.dsbwatch.R
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import androidx.compose.runtime.Immutable
@@ -163,11 +164,44 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = UiState.Loading
         viewModelScope.launch {
             kotlinx.coroutines.delay(1000)
+            val context = getApplication<Application>()
             val demoEntries = listOf(
-                SubstitutionEntry("Monday", "Vertretung", "Demo-10a", "1 - 2", "Math", "R101", "", "", "Teacher sick", ""),
-                SubstitutionEntry("Monday", "Entfall", "Demo-10a", "3", "Physics", "R102", "", "", "Room occupied", ""),
-                SubstitutionEntry("Tuesday", "Raumänderung", "Demo-10a", "5 - 6", "English", "R205", "", "", "Move to Cafeteria", ""),
-                SubstitutionEntry("Wednesday", "EVA", "Demo-10a", "1 - 2", "German", "HOME", "", "", "Work from home", "")
+                SubstitutionEntry(
+                    context.getString(R.string.demo_day_1),
+                    context.getString(R.string.demo_art_1),
+                    "Demo-10a",
+                    "1 - 2",
+                    context.getString(R.string.demo_subject_1),
+                    "R101", "", "",
+                    context.getString(R.string.demo_text_1), ""
+                ),
+                SubstitutionEntry(
+                    context.getString(R.string.demo_day_1),
+                    context.getString(R.string.demo_art_2),
+                    "Demo-10a",
+                    "3",
+                    context.getString(R.string.demo_subject_2),
+                    "R102", "", "",
+                    context.getString(R.string.demo_text_2), ""
+                ),
+                SubstitutionEntry(
+                    context.getString(R.string.demo_day_2),
+                    context.getString(R.string.demo_art_3),
+                    "Demo-10a",
+                    "5 - 6",
+                    context.getString(R.string.demo_subject_3),
+                    "R205", "", "",
+                    context.getString(R.string.demo_text_3), ""
+                ),
+                SubstitutionEntry(
+                    context.getString(R.string.demo_day_3),
+                    context.getString(R.string.demo_art_4),
+                    "Demo-10a",
+                    "1 - 2",
+                    context.getString(R.string.demo_subject_4),
+                    "HOME", "", "",
+                    context.getString(R.string.demo_text_4), ""
+                )
             )
             lastSuccessEntries = demoEntries
             _uiState.value = UiState.Success(demoEntries, isDemo = true)

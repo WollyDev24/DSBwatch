@@ -28,8 +28,26 @@
     <string name="label_type">Type</string>
     <string name="label_dynamic_color">Dynamic Color</string>
     <string name="label_sort_period">Sort by Period</string>
+    <string name="label_demo_mode">Demo Mode</string>
+    <string name="label_demo_mode_active">--- DEMO MODE ---</string>
     <string name="label_about">About</string>
     <string name="label_archive">Archive</string>
+
+    <string name="demo_day_1">Monday</string>
+    <string name="demo_day_2">Tuesday</string>
+    <string name="demo_day_3">Wednesday</string>
+    <string name="demo_art_1">Substitution</string>
+    <string name="demo_art_2">Cancellation</string>
+    <string name="demo_art_3">Room Change</string>
+    <string name="demo_art_4">Self-study</string>
+    <string name="demo_subject_1">Math</string>
+    <string name="demo_subject_2">Physics</string>
+    <string name="demo_subject_3">English</string>
+    <string name="demo_subject_4">German</string>
+    <string name="demo_text_1">Teacher sick</string>
+    <string name="demo_text_2">Room occupied</string>
+    <string name="demo_text_3">Move to Cafeteria</string>
+    <string name="demo_text_4">Work from home</string>
     
     <string name="desc_select_class">Choose your class from the list</string>
     <string name="desc_swap_default">Default mapping</string>

@@ -28,8 +28,26 @@
     <string name="label_type">Art</string>
     <string name="label_dynamic_color">Dynamische Farben</string>
     <string name="label_sort_period">Nach Stunde sortieren</string>
+    <string name="label_demo_mode">Demo-Modus</string>
+    <string name="label_demo_mode_active">--- DEMO-MODUS ---</string>
     <string name="label_about">Über</string>
     <string name="label_archive">Archiv</string>
+
+    <string name="demo_day_1">Montag</string>
+    <string name="demo_day_2">Dienstag</string>
+    <string name="demo_day_3">Mittwoch</string>
+    <string name="demo_art_1">Vertretung</string>
+    <string name="demo_art_2">Entfall</string>
+    <string name="demo_art_3">Raumänderung</string>
+    <string name="demo_art_4">EVA</string>
+    <string name="demo_subject_1">Mathe</string>
+    <string name="demo_subject_2">Physik</string>
+    <string name="demo_subject_3">Englisch</string>
+    <string name="demo_subject_4">Deutsch</string>
+    <string name="demo_text_1">Lehrer erkrankt</string>
+    <string name="demo_text_2">Raum belegt</string>
+    <string name="demo_text_3">In die Mensa</string>
+    <string name="demo_text_4">Aufgaben von zuhause</string>
     
     <string name="desc_select_class">Wähle deine Klasse aus der Liste</string>
     <string name="desc_swap_default">Standard-Zuordnung</string>

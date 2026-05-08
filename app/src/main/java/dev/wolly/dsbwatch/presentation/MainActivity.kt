@@ -261,7 +261,7 @@ fun LoginScreen(onLogin: (String, String) -> Unit, onLoginDemo: () -> Unit) {
                     ),
                     shape = CircleShape
                 ) {
-                    Text("Demo Mode")
+                    Text(stringResource(R.string.label_demo_mode))
                 }
             }
         }
@@ -381,7 +381,7 @@ fun SubstitutionList(
             if (isDemo) {
                 item(key = "demo_label") {
                     Text(
-                        text = "--- DEMO MODE ---",
+                        text = stringResource(R.string.label_demo_mode_active),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier
