@@ -9,6 +9,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -59,6 +62,7 @@ fun DSBwatchApp(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isDynamicColorEnabled by viewModel.isDynamicColorEnabled.collectAsStateWithLifecycle()
     val themeIndex by viewModel.themeIndex.collectAsStateWithLifecycle()
+    val archiveEntries by viewModel.archive.collectAsStateWithLifecycle()
     var currentScreen by remember { mutableStateOf("main") }
     
     DSBwatchTheme(
@@ -66,49 +70,128 @@ fun DSBwatchApp(viewModel: MainViewModel = viewModel()) {
         dynamicColor = isDynamicColorEnabled
     ) {
         AppScaffold {
-            when (currentScreen) {
-                "settings" -> SettingsScreen(
-                    viewModel = viewModel,
-                    onBack = { currentScreen = "main" },
-                    onOpenThemePicker = { currentScreen = "theme_picker" }
-                )
-                "theme_picker" -> ThemePickerScreen(
-                    viewModel = viewModel,
-                    onBack = { currentScreen = "settings" }
-                )
-                else -> {
-                    when (val state = uiState) {
-                        is UiState.Loading -> LoadingScreen()
-                        is UiState.NeedsLogin -> LoginScreen(
-                            onLogin = viewModel::login,
-                            onLoginDemo = viewModel::loginDemo
-                        )
-                        is UiState.SelectingClass -> {
-                            val onClassSelected = remember(state.u, state.p) {
-                                { cls: String -> viewModel.selectClass(state.u, state.p, cls) }
+            PredictiveBackHandler(enabled = currentScreen != "main") {
+                // Simple implementation: just go back when gesture is finished
+                try {
+                    it.collect { /* we could animate a scale/offset here if we wanted deeper predictive back */ }
+                    if (currentScreen == "theme_picker") currentScreen = "settings"
+                    else if (currentScreen == "settings") currentScreen = "main"
+                } catch (e: Exception) {
+                    // Handle cancellation if needed
+                }
+            }
+
+            AnimatedContent(
+                targetState = currentScreen,
+                transitionSpec = {
+                    if (targetState == "main" || (targetState == "settings" && initialState == "theme_picker")) {
+                        (slideInHorizontally { -it } + fadeIn()).togetherWith(slideOutHorizontally { it } + fadeOut())
+                    } else {
+                        (slideInHorizontally { it } + fadeIn()).togetherWith(slideOutHorizontally { -it } + fadeOut())
+                    }.using(SizeTransform(clip = false))
+                },
+                label = "ScreenTransition"
+            ) { screen ->
+                when (screen) {
+                    "settings" -> SettingsScreen(
+                        viewModel = viewModel,
+                        onBack = { currentScreen = "main" },
+                        onOpenThemePicker = { currentScreen = "theme_picker" }
+                    )
+                    "theme_picker" -> ThemePickerScreen(
+                        viewModel = viewModel,
+                        onBack = { currentScreen = "settings" }
+                    )
+                    else -> {
+                        AnimatedContent(
+                            targetState = uiState,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+                            },
+                            label = "StateTransition"
+                        ) { state ->
+                            when (state) {
+                                is UiState.Loading -> LoadingScreen()
+                                is UiState.NeedsLogin -> LoginScreen(
+                                    onLogin = viewModel::login,
+                                    onLoginDemo = viewModel::loginDemo
+                                )
+                                is UiState.SelectingClass -> {
+                                    val onClassSelected = remember(state.u, state.p) {
+                                        { cls: String -> viewModel.selectClass(state.u, state.p, cls) }
+                                    }
+                                    ClassSelectionScreen(
+                                        classes = state.classes,
+                                        onClassSelected = onClassSelected,
+                                        onBack = viewModel::resetToLogin
+                                    )
+                                }
+                                is UiState.Success -> {
+                                    val pagerState = rememberPagerState(pageCount = { 2 })
+                                    Box(modifier = Modifier.fillMaxSize()) {
+                                        HorizontalPager(
+                                            state = pagerState,
+                                            modifier = Modifier.fillMaxSize()
+                                        ) { page ->
+                                            if (page == 0) {
+                                                SubstitutionList(
+                                                    entries = state.entries,
+                                                    isDemo = state.isDemo,
+                                                    onRefresh = viewModel::fetchData,
+                                                    onOpenSettings = { currentScreen = "settings" }
+                                                )
+                                            } else {
+                                                ArchiveList(
+                                                    entries = archiveEntries,
+                                                    onRemove = viewModel::removeFromArchive,
+                                                    onOpenSettings = { currentScreen = "settings" }
+                                                )
+                                            }
+                                        }
+                                        PagerIndicator(
+                                            modifier = Modifier
+                                                .align(Alignment.BottomCenter)
+                                                .padding(bottom = 6.dp),
+                                            pagerState = pagerState
+                                        )
+                                    }
+                                }
+                                is UiState.Error -> ErrorScreen(
+                                    message = state.message,
+                                    onRetry = viewModel::fetchData
+                                )
+                                else -> LoadingScreen()
                             }
-                            ClassSelectionScreen(
-                                classes = state.classes,
-                                onClassSelected = onClassSelected,
-                                onBack = viewModel::resetToLogin
-                            )
                         }
-                        is UiState.Success -> {
-                            SubstitutionList(
-                                entries = state.entries,
-                                isDemo = state.isDemo,
-                                onRefresh = viewModel::fetchData,
-                                onOpenSettings = { currentScreen = "settings" }
-                            )
-                        }
-                        is UiState.Error -> ErrorScreen(
-                            message = state.message,
-                            onRetry = viewModel::fetchData
-                        )
-                        else -> LoadingScreen()
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun PagerIndicator(
+    modifier: Modifier = Modifier,
+    pagerState: androidx.compose.foundation.pager.PagerState
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(pagerState.pageCount) { iteration ->
+            val color = if (pagerState.currentPage == iteration) 
+                MaterialTheme.colorScheme.primary 
+            else 
+                MaterialTheme.colorScheme.outlineVariant
+            Box(
+                modifier = Modifier
+                    .padding(2.dp)
+                    .clip(CircleShape)
+                    .background(color)
+                    .size(6.dp)
+            )
         }
     }
 }
@@ -500,9 +583,101 @@ fun SubstitutionList(
 }
 
 @Composable
+fun ArchiveList(
+    entries: List<SubstitutionEntry>,
+    onRemove: (SubstitutionEntry) -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    val scrollState = rememberTransformingLazyColumnState()
+    val transformationSpec = rememberTransformationSpec()
+    val grouped = remember(entries) { entries.groupBy { it.day } }
+
+    ScreenScaffold(scrollState = scrollState) { contentPadding ->
+        val padding = remember(contentPadding) {
+            PaddingValues(
+                top = contentPadding.calculateTopPadding(),
+                bottom = contentPadding.calculateBottomPadding(),
+                start = 14.dp,
+                end = 14.dp
+            )
+        }
+        
+        TransformingLazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = scrollState,
+            contentPadding = padding
+        ) {
+            item(key = "archive_header") {
+                ListHeader(modifier = Modifier.transformedHeight(this, transformationSpec)) {
+                    Text(stringResource(R.string.label_archive))
+                }
+            }
+            if (entries.isEmpty()) {
+                item {
+                    Text(
+                        stringResource(R.string.msg_no_substitutions),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .transformedHeight(this, transformationSpec)
+                            .graphicsLayer {
+                                val progress = scrollProgress
+                                val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                                val scale = 1f - abs(center - 0.5f) * 0.5f
+                                scaleX = scale.coerceAtLeast(0.7f)
+                                scaleY = scale.coerceAtLeast(0.7f)
+                                alpha = scale.coerceAtLeast(0.5f)
+                            },
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                grouped.forEach { (day, dayEntries) ->
+                    item(key = "archive_header_$day", contentType = "header") {
+                        ListHeader(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .transformedHeight(this, transformationSpec)
+                        ) {
+                            Text(
+                                text = day,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .graphicsLayer {
+                                        val progress = scrollProgress
+                                        val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
+                                        val scale = 1f - abs(center - 0.5f) * 0.5f
+                                        scaleX = scale.coerceAtLeast(0.7f)
+                                        scaleY = scale.coerceAtLeast(0.7f)
+                                        alpha = scale.coerceAtLeast(0.5f)
+                                    },
+                                textAlign = TextAlign.Start
+                            )
+                        }
+                    }
+                    items(
+                        dayEntries, 
+                        key = { "archive_" + it.day + it.lesson + it.subject + it.room + it.art + it.text },
+                        contentType = { "entry" }
+                    ) { entry ->
+                        SubstitutionItem(
+                            entry = entry, 
+                            transformationSpec = transformationSpec,
+                            onRemove = { onRemove(entry) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun TransformingLazyColumnItemScope.SubstitutionItem(
     entry: SubstitutionEntry,
-    transformationSpec: TransformationSpec
+    transformationSpec: TransformationSpec,
+    onRemove: (() -> Unit)? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
     val cardShape = MaterialTheme.shapes.extraLarge
@@ -584,13 +759,35 @@ fun TransformingLazyColumnItemScope.SubstitutionItem(
                     )
                 }
             }
-            if (expanded && entry.text.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = entry.text,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column {
+                    if (entry.text.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = entry.text,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (onRemove != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = onRemove,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            ),
+                            shape = CircleShape
+                        ) {
+                            Text("Delete from Archive")
+                        }
+                    }
+                }
             }
         }
     }
