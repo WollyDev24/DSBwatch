@@ -33,6 +33,7 @@
     <string name="label_about">Über</string>
     <string name="label_archive">Archiv</string>
 
+    <string name="theme_pink">Pink</string>
     <string name="demo_day_1">Montag</string>
     <string name="demo_day_2">Dienstag</string>
     <string name="demo_day_3">Mittwoch</string>
@@ -56,7 +57,7 @@
     <string name="desc_logout">Anmeldedaten entfernen und App zurücksetzen</string>
     <string name="desc_dynamic_color">Farben deines Hintergrundbildes nutzen (Android 12+)</string>
     <string name="desc_sort_period">Ordnet Vertretungen chronologisch</string>
-    <string name="desc_about">Version 1.0 • Entwickelt von WollyDev24</string>
+    <string name="desc_about">Version 1.0-alpha • Entwickelt von WollyDev24</string>
     
     <string name="msg_no_substitutions">Keine Vertretungen gefunden.</string>
     <string name="msg_no_classes">Keine Klassen gefunden. Überprüfe deine Zugangsdaten.</string>
@@ -66,4 +67,13 @@
     <string name="hello_world">Hallo %1$s!</string>
     <string name="complication_label">Haupt-Komplikation</string>
     <string name="tile_label">Haupt-Tile</string>
+    <string name="label_theme_picker">Theme Wähler</string>
+    <string name="label_selected">Ausgehwählt - Bestätigen</string>
+    <string name="label_swipe_to_select">Wische um Auszuwählen</string>
+    <string name="theme_green">Grün</string>
+    <string name="theme_blue">Blau</string>
+    <string name="theme_purple">Lila</string>
+    <string name="theme_red">Rot</string>
+    <string name="theme_orange">Orange</string>
+    <string name="theme_cyan">Cyan</string>
 </resources>

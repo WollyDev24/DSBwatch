@@ -11,7 +11,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -22,8 +23,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -60,14 +65,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun DSBwatchApp(viewModel: MainViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val isDynamicColorEnabled by viewModel.isDynamicColorEnabled.collectAsStateWithLifecycle()
     val themeIndex by viewModel.themeIndex.collectAsStateWithLifecycle()
     val archiveEntries by viewModel.archive.collectAsStateWithLifecycle()
     var currentScreen by remember { mutableStateOf("main") }
     
     DSBwatchTheme(
         themeIndex = themeIndex,
-        dynamicColor = isDynamicColorEnabled
     ) {
         AppScaffold {
             PredictiveBackHandler(enabled = currentScreen != "main") {
@@ -804,7 +807,6 @@ fun SettingsScreen(
     val transformationSpec = rememberTransformationSpec()
     val isRoomFirst by viewModel.isRoomFirst.collectAsStateWithLifecycle()
     val sortByPeriod by viewModel.sortByPeriod.collectAsStateWithLifecycle()
-    val isDynamicColorEnabled by viewModel.isDynamicColorEnabled.collectAsStateWithLifecycle()
 
     ScreenScaffold(scrollState = scrollState) { contentPadding ->
         val padding = remember(contentPadding) {
@@ -899,40 +901,6 @@ fun SettingsScreen(
                     secondaryLabel = { 
                         Text(
                             text = if (sortByPeriod) "Chronological" else "Default",
-                            modifier = Modifier.graphicsLayer {
-                                val progress = scrollProgress
-                                val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
-                                val scale = 1f - abs(center - 0.5f) * 0.5f
-                                scaleX = scale.coerceAtLeast(0.7f)
-                                scaleY = scale.coerceAtLeast(0.7f)
-                            }
-                        ) 
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .transformedHeight(this, transformationSpec),
-                    transformation = SurfaceTransformation(transformationSpec)
-                )
-            }
-            item(key = "dynamic_color") {
-                SwitchButton(
-                    checked = isDynamicColorEnabled,
-                    onCheckedChange = { viewModel.toggleDynamicColor() },
-                    label = { 
-                        Text(
-                            text = stringResource(R.string.label_dynamic_color),
-                            modifier = Modifier.graphicsLayer {
-                                val progress = scrollProgress
-                                val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
-                                val scale = 1f - abs(center - 0.5f) * 0.5f
-                                scaleX = scale.coerceAtLeast(0.7f)
-                                scaleY = scale.coerceAtLeast(0.7f)
-                            }
-                        ) 
-                    },
-                    secondaryLabel = { 
-                        Text(
-                            text = stringResource(R.string.desc_dynamic_color),
                             modifier = Modifier.graphicsLayer {
                                 val progress = scrollProgress
                                 val center = (progress.topOffsetFraction + progress.bottomOffsetFraction) / 2f
@@ -1087,7 +1055,7 @@ fun SettingsScreen(
 fun ThemePickerScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     val themeIndex by viewModel.themeIndex.collectAsStateWithLifecycle()
-    val isDynamicColorEnabled by viewModel.isDynamicColorEnabled.collectAsStateWithLifecycle()
+
     
     val themeNames = listOf(
         stringResource(R.string.theme_green),
@@ -1104,19 +1072,6 @@ fun ThemePickerScreen(viewModel: MainViewModel, onBack: () -> Unit) {
     LaunchedEffect(pagerState.currentPage) {
         viewModel.setThemeIndex(pagerState.currentPage)
     }
-
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        // Warning if Dynamic Color is on (though our viewModel now disables it on swipe)
-        if (isDynamicColorEnabled && pagerState.currentPage == 0) {
-            Text(
-                text = "Dynamic Color Active",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 24.dp)
-            )
-        }
 
         HorizontalPager(
             state = pagerState,
@@ -1167,7 +1122,6 @@ fun ThemePickerScreen(viewModel: MainViewModel, onBack: () -> Unit) {
             }
         }
     }
-}
 
 @Composable
 fun ThemePreviewCard(colorScheme: ColorScheme, onClick: () -> Unit) {
